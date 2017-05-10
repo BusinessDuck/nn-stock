@@ -1,12 +1,12 @@
-import React, { Component } from "react";
-import "../vendors/amcharts/amcharts";
-import "../vendors/amcharts/serial";
-import "../vendors/amcharts/amstock";
-import "../vendors/amcharts/themes/dark";
-import "../vendors/amcharts/style.css";
-import "./styles.css";
-import * as AmCharts from "@amcharts/amcharts3-react";
-import axios from "axios";
+import React, { Component } from 'react';
+import '../vendors/amcharts/amcharts';
+import '../vendors/amcharts/serial';
+import '../vendors/amcharts/amstock';
+import '../vendors/amcharts/themes/dark';
+import '../vendors/amcharts/style.css';
+import './styles.css';
+import * as AmCharts from '@amcharts/amcharts3-react';
+import axios from 'axios';
 
 /* global AmCharts  AmStockChart*/
 const chartData1 = [];
@@ -35,12 +35,12 @@ function generateChartData() {
   return axios.get('https://www.quandl.com/api/v3/datasets/WIKI/AAPL.json', {
     params: {
       api_key: 'JyAjezBNszuLyrpp3AVs',
-      start_date: '2015-01-01',
+      start_date: '1998-01-01',
       end_date: '2017-05-10',
       order: 'asc',
       collapse: 'daily'
     }
-  }).then(({data}) => data.dataset.data.map((item, index) => ({
+  }).then(({ data }) => data.dataset.data.map((item, index) => ({
     date: new Date(item[0]),
     value: parseFloat(item[4] / (data.dataset.data[index - 1] || [])[4]).toFixed(3),
     volume: item[5]
@@ -51,16 +51,20 @@ function normalzie(dataset) {
   const normal = {};
   const result = [];
   dataset.forEach(item => {
+    if (isNaN(item.value)) {
+      return;
+    }
     if (normal[item.value]) {
       normal[item.value]++;
     } else {
       normal[item.value] = 1;
     }
   });
-  Object.keys(normal).forEach(key => {
+  const keysArray = Object.keys(normal).sort();
+  keysArray.forEach(key => {
     result.push({
-      percent: key,
-      value: normal[key]
+      value: normal[key],
+      prob: +(key)
     });
   });
   return result;
@@ -71,7 +75,7 @@ export default class App extends Component {
     super(props);
     this.state = {};
     generateChartData().then(dataset => {
-      this.setState({dataset1: dataset, dataset2: normalzie(dataset)});
+      this.setState({ dataset1: dataset, dataset2: normalzie(dataset) });
     });
   }
 
@@ -115,22 +119,22 @@ export default class App extends Component {
         }
       },
 
-        {
-          title: 'Volume',
-          percentHeight: 30,
-          stockGraphs: [{
-            valueField: 'volume',
-            type: 'column',
-            showBalloon: false,
-            fillAlphas: 1
-          },
-          ],
+      {
+        title: 'Volume',
+        percentHeight: 30,
+        stockGraphs: [{
+          valueField: 'volume',
+          type: 'column',
+          showBalloon: false,
+          fillAlphas: 1
+        },
+        ],
 
 
-          stockLegend: {
-            periodValueTextRegular: '[[value.close]]'
-          }
+        stockLegend: {
+          periodValueTextRegular: '[[value.close]]'
         }
+      }
       ],
 
       chartScrollbarSettings: {
@@ -182,8 +186,9 @@ export default class App extends Component {
       gridAboveGraphs: true,
       startDuration: 1,
       graphs: [{
-        balloonText: '[[category]]: <b>[[value]]</b>',
-        fillAlphas: 0.8,
+        balloonText: '<b>[[category]]: [[value]]</b>',
+        fillColorsField: 'color',
+        fillAlphas: 0.9,
         lineAlpha: 0.2,
         type: 'column',
         valueField: 'value'
@@ -193,25 +198,18 @@ export default class App extends Component {
         cursorAlpha: 0,
         zoomable: false
       },
-      categoryField: 'percent',
-      categoryAxis: {
-        gridPosition: 'start',
-        gridAlpha: 0,
-        tickPosition: 'start',
-        tickLength: 20
-      },
+      categoryField: 'prob',
       export: {
-        enabled: true
+        'enabled': true
       }
-
     };
 
     return (
       <div>
-        <div className="chart1" >
+        <div className="chart1">
           <AmCharts.React {...config} />
         </div>
-        <div className="chart2" >
+        <div className="chart2">
           <AmCharts.React {...config2} />
         </div>
       </div>
