@@ -64,18 +64,62 @@ function normalzie(dataset) {
   keysArray.forEach(key => {
     result.push({
       value: normal[key],
-      prob: +(key)
+      prob: key
     });
   });
   return result;
+}
+
+function getSegments(gaussianData = [], N = 6) {
+  if (!gaussianData.length) {
+    return [];
+  }
+  let totalSum = 0;
+  gaussianData.forEach(item => {
+    totalSum += item.value;
+  });
+  const segmentSize = totalSum / (N - 1);
+  const result = [gaussianData[0]];
+  totalSum = 0;
+  gaussianData.forEach(item => {
+    totalSum += item.value;
+    if (totalSum >= segmentSize) {
+      result.push(item);
+      totalSum = 0;
+    }
+  });
+  result.push(gaussianData[gaussianData.length - 1]);
+  return result;
+}
+
+function encodeToClass(dataset, segments) {
+  const segmentsArray = segments.map(segment => segment.prob);
+  return dataset.map(item => {
+    let groupIndex = 1;
+    segmentsArray.forEach((segment, index) => {
+      if(segment < item.value) {
+        groupIndex = index;
+      } else {
+        return false;
+      }
+
+    });
+    item.value = groupIndex;
+    return item;
+  })
 }
 
 export default class App extends Component {
   constructor(props) {
     super(props);
     this.state = {};
+    this.segments = [];
     generateChartData().then(dataset => {
-      this.setState({ dataset1: dataset, dataset2: normalzie(dataset) });
+      const dataset2 = normalzie(dataset);
+      this.segments = getSegments(dataset2, 6);
+      const dataset1 = encodeToClass(dataset, this.segments);
+      console.log(dataset1);
+      this.setState({ dataset1, dataset2});
     });
   }
 
@@ -178,11 +222,20 @@ export default class App extends Component {
       type: 'serial',
       theme: 'dark',
       dataProvider: this.state.dataset2,
+      guides: this.segments.map((item, index) => ({
+        category: item.prob,
+        lineColor: '#CC0000',
+        label: `N = ${index + 1}`,
+        labelOffset: 15,
+        lineAlpha: 1,
+        dashLength: 2
+      })),
       valueAxes: [{
         gridColor: '#FFFFFF',
         gridAlpha: 0.2,
-        dashLength: 0
+        dashLength: 0,
       }],
+
       gridAboveGraphs: true,
       startDuration: 1,
       graphs: [{
@@ -200,7 +253,7 @@ export default class App extends Component {
       },
       categoryField: 'prob',
       export: {
-        'enabled': true
+        enabled: true
       }
     };
 
