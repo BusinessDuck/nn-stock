@@ -1,38 +1,26 @@
 import React, { Component } from 'react';
+import axios from 'axios';
+import * as _ from 'lodash';
+import SelectItem from 'react-select-item';
 import '../vendors/amcharts/amcharts';
 import '../vendors/amcharts/serial';
 import '../vendors/amcharts/amstock';
 import '../vendors/amcharts/themes/dark';
 import '../vendors/amcharts/style.css';
 import './styles.css';
+import 'react-select-item/example/select-box.css';
 import * as AmCharts from '@amcharts/amcharts3-react';
-import axios from 'axios';
 
-/* global AmCharts  AmStockChart*/
-const chartData1 = [];
-const chartData2 = [];
-const chartData3 = [];
-const chartData4 = [];
+export default class App extends Component {
 
-/*
- olumn_names: [
- "Date",
- "Open",
- "High",
- "Low",
- "Close",
- "Volume",
- "Ex-Dividend",
- "Split Ratio",
- "Adj. Open",
- "Adj. High",
- "Adj. Low",
- "Adj. Close",
- "Adj. Volume"
- ],
- */
-function generateChartData() {
-  return axios.get('https://www.quandl.com/api/v3/datasets/WIKI/AAPL.json', {
+  constructor(props) {
+    super(props);
+    this.state = {};
+    this.segments = [];
+    this.symbols = ['AAPL', 'IBM', 'GOOG'].map((item) => ({ name: item, value: item }));
+  }
+
+  getMarketData = (symbol) => axios.get(`https://www.quandl.com/api/v3/datasets/WIKI/${symbol}.json`, {
     params: {
       api_key: 'JyAjezBNszuLyrpp3AVs',
       start_date: '1998-01-01',
@@ -40,87 +28,76 @@ function generateChartData() {
       order: 'asc',
       collapse: 'daily'
     }
-  }).then(({ data }) => data.dataset.data.map((item, index) => ({
-    date: new Date(item[0]),
-    value: parseFloat(item[4] / (data.dataset.data[index - 1] || [])[4]).toFixed(3),
-    volume: item[5]
-  })));
-}
+  }).then(response => response.data.dataset.data);
 
-function normalzie(dataset) {
-  const normal = {};
-  const result = [];
-  dataset.forEach(item => {
-    if (isNaN(item.value)) {
-      return;
-    }
-    if (normal[item.value]) {
-      normal[item.value]++;
-    } else {
-      normal[item.value] = 1;
-    }
-  });
-  const keysArray = Object.keys(normal).sort();
-  keysArray.forEach(key => {
-    result.push({
-      value: normal[key],
-      prob: key
+  symbolChangeHandler = (symbol) => {
+    console.log(symbol);
+    this.setState({ symbol });
+    this.getMarketData(symbol).then(marketData => {
+      const quoteDeltaData = this.getQuoteDeltaData(marketData);
+      const deltaDisturbData = this.getDistributionData(quoteDeltaData);
+      const segments = this.getSegments(deltaDisturbData, 6);
+      const quoteClassesData = this.getClassifiedData(quoteDeltaData, segments);
+      this.setState({ marketData, quoteDeltaData, deltaDisturbData, segments, quoteClassesData });
+      return marketData;
     });
-  });
-  return result;
-}
+  };
 
-function getSegments(gaussianData = [], N = 6) {
-  if (!gaussianData.length) {
-    return [];
-  }
-  let totalSum = 0;
-  gaussianData.forEach(item => {
-    totalSum += item.value;
-  });
-  const segmentSize = totalSum / (N - 1);
-  const result = [gaussianData[0]];
-  totalSum = 0;
-  gaussianData.forEach(item => {
-    totalSum += item.value;
-    if (totalSum >= segmentSize) {
-      result.push(item);
-      totalSum = 0;
-    }
-  });
-  result.push(gaussianData[gaussianData.length - 1]);
-  return result;
-}
-
-function encodeToClass(dataset, segments) {
-  const segmentsArray = segments.map(segment => segment.prob);
-  return dataset.map(item => {
-    let groupIndex = 1;
-    segmentsArray.forEach((segment, index) => {
-      if(segment < item.value) {
-        groupIndex = index;
-      } else {
-        return false;
+  getQuoteDeltaData(marketData) {
+    const result = [];
+    marketData.forEach((item, index) => {
+      if (index <= 1) {
+        return null;
       }
-
+      result.push({
+        date: new Date(item[0]),
+        value: parseFloat(item[4] / (marketData[index - 1] || [])[4]).toFixed(3),
+        volume: item[5]
+      });
     });
-    item.value = groupIndex;
-    return item;
-  })
-}
+    return result;
+  }
 
-export default class App extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {};
-    this.segments = [];
-    generateChartData().then(dataset => {
-      const dataset2 = normalzie(dataset);
-      this.segments = getSegments(dataset2, 6);
-      const dataset1 = encodeToClass(dataset, this.segments);
-      console.log(dataset1);
-      this.setState({ dataset1, dataset2});
+  getDistributionData(quoteDeltaData) {
+    const result = [];
+    const map = _.countBy(quoteDeltaData, 'value');
+    const keysArray = Object.keys(map).sort();
+    keysArray.forEach(key => {
+      result.push({
+        count: map[key],
+        quote: key
+      });
     });
+    return result;
+  }
+
+  getSegments(deltaDisturbData = [], N = 6) {
+    const totalSum = _.sumBy(deltaDisturbData, 'value');
+    const result = [];
+    const segmentSize = totalSum / (N - 1);
+    result.push(_.head(deltaDisturbData));
+    let localSumCounts = 0;
+    let localSumQuotes = 0;
+    let count = 0;
+    deltaDisturbData.forEach(item => {
+      localSumCounts += item.count;
+      localSumQuotes += item.quote;
+      count++;
+      if (localSumCounts >= segmentSize) {
+        result.push({ ...item, average: parseFloat(localSumQuotes / count).toFixed(3) });
+        localSumCounts = localSumQuotes = count = 0;
+      }
+    });
+    result.push(_.last(deltaDisturbData));
+    return result;
+  }
+
+  getClassifiedData(deltaDisturbData, segments) {
+    const segmentsArray = _.map(segments, 'quote');
+    return deltaDisturbData.map(item => ({
+      ...item,
+      value: _.findIndex(segmentsArray, segmentValue => segmentValue > item.value)
+    }));
   }
 
   render() {
@@ -137,7 +114,7 @@ export default class App extends Component {
           fromField: 'volume',
           toField: 'volume'
         }],
-        dataProvider: this.state.dataset1,
+        dataProvider: this.state.quoteClassesData,
         categoryField: 'date'
       }],
       panels: [{
@@ -221,9 +198,9 @@ export default class App extends Component {
     const config2 = {
       type: 'serial',
       theme: 'dark',
-      dataProvider: this.state.dataset2,
+      dataProvider: this.state.deltaDisturbData,
       guides: this.segments.map((item, index) => ({
-        category: item.prob,
+        category: item.quote,
         lineColor: '#CC0000',
         label: `N = ${index + 1}`,
         labelOffset: 15,
@@ -244,14 +221,14 @@ export default class App extends Component {
         fillAlphas: 0.9,
         lineAlpha: 0.2,
         type: 'column',
-        valueField: 'value'
+        valueField: 'count'
       }],
       chartCursor: {
         categoryBalloonEnabled: false,
         cursorAlpha: 0,
         zoomable: false
       },
-      categoryField: 'prob',
+      categoryField: 'quote',
       export: {
         enabled: true
       }
@@ -259,11 +236,25 @@ export default class App extends Component {
 
     return (
       <div>
-        <div className="chart1">
-          <AmCharts.React {...config} />
+        <div className="panel">
+          <SelectItem
+            onChange={this.symbolChangeHandler}
+            value={this.state.symbol}
+            closeText={false}
+            multiple={false}
+          >
+            { this.symbols.map((item, index) => (
+              <option key={index} value={item.value}>{item.name}</option>
+            ))}
+          </SelectItem>
         </div>
-        <div className="chart2">
-          <AmCharts.React {...config2} />
+        <div>
+          <div className="chart1">
+            <AmCharts.React {...config} />
+          </div>
+          <div className="chart2">
+            <AmCharts.React {...config2} />
+          </div>
         </div>
       </div>
     );

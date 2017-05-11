@@ -73,7 +73,8 @@ module.exports = {
         loaders: ['babel'],
         include: path.join(__dirname, 'scripts')
       },
-      { test: /\.css$/, loader: "style-loader!css-loader" }
+      { test: /\.css$/, loader: "style-loader!css-loader" },
+      { test: /\.(jpe?g|png|gif)$/i, loader: 'file-loader?name=[name].[ext]' },
     ]
   }
 };
