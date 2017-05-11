@@ -15,7 +15,9 @@ export default class App extends Component {
 
   constructor(props) {
     super(props);
-    this.state = {};
+    this.state = {
+      symbol: null
+    };
     this.segments = [];
     this.symbols = ['AAPL', 'IBM', 'GOOG'].map((item) => ({ name: item, value: item }));
   }
@@ -29,19 +31,6 @@ export default class App extends Component {
       collapse: 'daily'
     }
   }).then(response => response.data.dataset.data);
-
-  symbolChangeHandler = (symbol) => {
-    console.log(symbol);
-    this.setState({ symbol });
-    this.getMarketData(symbol).then(marketData => {
-      const quoteDeltaData = this.getQuoteDeltaData(marketData);
-      const deltaDisturbData = this.getDistributionData(quoteDeltaData);
-      const segments = this.getSegments(deltaDisturbData, 6);
-      const quoteClassesData = this.getClassifiedData(quoteDeltaData, segments);
-      this.setState({ marketData, quoteDeltaData, deltaDisturbData, segments, quoteClassesData });
-      return marketData;
-    });
-  };
 
   getQuoteDeltaData(marketData) {
     const result = [];
@@ -99,6 +88,18 @@ export default class App extends Component {
       value: _.findIndex(segmentsArray, segmentValue => segmentValue > item.value)
     }));
   }
+
+  symbolChangeHandler = (symbol) => {
+    this.setState({ symbol });
+    this.getMarketData(symbol).then(marketData => {
+      const quoteDeltaData = this.getQuoteDeltaData(marketData);
+      const deltaDisturbData = this.getDistributionData(quoteDeltaData);
+      const segments = this.getSegments(deltaDisturbData, 6);
+      const quoteClassesData = this.getClassifiedData(quoteDeltaData, segments);
+      this.setState({ marketData, quoteDeltaData, deltaDisturbData, segments, quoteClassesData });
+      return marketData;
+    });
+  };
 
   render() {
     const config = {
