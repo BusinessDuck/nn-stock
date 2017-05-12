@@ -18,7 +18,7 @@ export function getQuoteDeltaData(marketData, precission) {
 export function getDistributionData(quoteDeltaData) {
   const result = [];
   const map = _.countBy(quoteDeltaData, 'value');
-  const keysArray = Object.keys(map).sort((a,b) => {
+  const keysArray = Object.keys(map).sort((a, b) => {
     if (+(a) > +(b)) {
       return 1;
     }
@@ -29,7 +29,7 @@ export function getDistributionData(quoteDeltaData) {
   });
   keysArray.forEach(key => {
     result.push({
-      count: map[key + ""],
+      count: map[`${key}`],
       quote: key
     });
   });
@@ -44,8 +44,8 @@ export function getSegments(deltaDisturbData = [], N = 6, precission) {
   let localSumQuotes = 0;
   let count = 0;
   deltaDisturbData.forEach((item) => {
-    localSumCounts += item.count;
-    localSumQuotes += item.quote;
+    localSumCounts += +(item.count);
+    localSumQuotes += +(item.quote);
     count++;
     if (localSumCounts >= segmentSize) {
       result.push({
@@ -62,15 +62,16 @@ export function getSegments(deltaDisturbData = [], N = 6, precission) {
 export function getClassifiedData(deltaDisturbData, segments) {
   const segmentsArray = _.map(segments, 'quote');
   return deltaDisturbData.map(item => {
-    let index = 1;
-    while(item.value > segmentsArray[index] && segmentsArray.length > index){
+    let index = 0;
+    while (+(item.value) >= +(segmentsArray[index]) && segmentsArray.length > index) {
       index++;
     }
-    if(item.value > _.last(segmentsArray)) {
+    if (item.value >= _.last(segmentsArray)) {
       index++;
     }
     return {
-    ...item,
-    value: index
-  }});
+      ...item,
+      value: index
+    };
+  });
 }

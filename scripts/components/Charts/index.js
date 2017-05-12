@@ -38,7 +38,7 @@ export default class Charts extends Component {
     if (!this.props.marketData.length) {
       return null;
     }
-    const {precission} = this.props;
+    const { precission } = this.props;
     const quoteDeltaData = utils.getQuoteDeltaData(this.props.marketData, precission);
     const deltaDisturbData = utils.getDistributionData(quoteDeltaData);
     const segments = utils.getSegments(deltaDisturbData, this.props.segmentCount, precission);
