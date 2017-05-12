@@ -12,13 +12,15 @@ export default class Charts extends Component {
   static propTypes = {
     marketData: PropTypes.array,
     loading: PropTypes.bool,
-    segmentCount: PropTypes.number
+    segmentCount: PropTypes.number,
+    precission: PropTypes.number,
   };
 
   static defaultProps = {
     marketData: [],
     loading: false,
-    segmentCount: 6
+    segmentCount: 6,
+    precission: 3
   };
 
   constructor(props) {
@@ -36,9 +38,10 @@ export default class Charts extends Component {
     if (!this.props.marketData.length) {
       return null;
     }
-    const quoteDeltaData = utils.getQuoteDeltaData(this.props.marketData);
+    const {precission} = this.props;
+    const quoteDeltaData = utils.getQuoteDeltaData(this.props.marketData, precission);
     const deltaDisturbData = utils.getDistributionData(quoteDeltaData);
-    const segments = utils.getSegments(deltaDisturbData, this.props.segmentCount);
+    const segments = utils.getSegments(deltaDisturbData, this.props.segmentCount, precission);
     const quoteClassesData = utils.getClassifiedData(quoteDeltaData, segments);
     const deltaDisturbDataClasses = utils.getDistributionData(quoteClassesData);
 

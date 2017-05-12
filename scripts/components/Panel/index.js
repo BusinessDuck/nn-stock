@@ -6,12 +6,14 @@ import './styles.css';
 export default class Panel extends Component {
   static propTypes = {
     symbolChangeHandler: PropTypes.func,
-    segmentChangeHandler: PropTypes.func
+    segmentChangeHandler: PropTypes.func,
+    onPrecissionChange: PropTypes.func,
   };
 
   static defaultProps = {
     symbolChangeHandler: () => null,
-    segmentChangeHandler: () => null
+    segmentChangeHandler: () => null,
+    onPrecissionChange: () => null,
   };
 
   constructor(props) {
@@ -30,6 +32,9 @@ export default class Panel extends Component {
   onSegmentChangeHandler = (e) => {
     this.props.segmentChangeHandler(+(e.target.value));
   };
+  onPrecissionChangeHandler = (e) => {
+    this.props.onPrecissionChange(+(e.target.value));
+  };
 
   render() {
     return (
@@ -47,6 +52,10 @@ export default class Panel extends Component {
           </SelectItem>
 
           <hr />
+          <div className="input">
+            <label>ТОчность округления:</label>
+            <input type="number" min="1" max="6" step="1" defaultValue="3" onChange={this.onPrecissionChangeHandler} />
+          </div>
           <div className="input">
             <label>Количество сегментов:</label>
             <input type="number" min="6" max="30" step="1" defaultValue="6" onChange={this.onSegmentChangeHandler} />

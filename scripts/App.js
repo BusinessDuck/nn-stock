@@ -16,7 +16,7 @@ export default class App extends Component {
     return axios.get(`https://www.quandl.com/api/v3/datasets/WIKI/${symbol}.json`, {
       params: {
         api_key: 'JyAjezBNszuLyrpp3AVs',
-        start_date: '1998-01-01',
+        start_date: '2005-01-01',
         end_date: '2017-05-10',
         order: 'asc',
         collapse: 'daily'
@@ -44,12 +44,25 @@ export default class App extends Component {
     });
   };
 
+  precissionChangeHandler = (precission) => {
+    this.setState({ precission, showCharts: false }, () => {
+      this.setState({ showCharts: true });
+    });
+  };
+
   render() {
     return (
       <div>
-        <Panel symbolChangeHandler={this.symbolChangeHandler} segmentChangeHandler={this.segmentChangeHandler} />
+        <Panel symbolChangeHandler={this.symbolChangeHandler} segmentChangeHandler={this.segmentChangeHandler}
+        onPrecissionChange={this.precissionChangeHandler}/>
         { this.state.showCharts ?
-          <Charts refs={node => this.charts = node} marketData={this.state.marketData} loading={this.state.preloader} segmentCount={this.state.segmentCount} />
+          <Charts
+            refs={node => this.charts = node}
+            marketData={this.state.marketData}
+            loading={this.state.preloader}
+            segmentCount={this.state.segmentCount}
+            precission={this.state.precission}
+           />
             : null
         }
       </div>

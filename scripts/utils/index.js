@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
 
-export function getQuoteDeltaData(marketData) {
+export function getQuoteDeltaData(marketData, precission) {
   const result = [];
   marketData.forEach((item, index) => {
     if (index <= 1) {
@@ -8,7 +8,7 @@ export function getQuoteDeltaData(marketData) {
     }
     result.push({
       date: new Date(item[0]),
-      value: parseFloat(item[4] / (marketData[index - 1] || [])[4]).toFixed(3),
+      value: parseFloat(item[4] / (marketData[index - 1] || [])[4]).toFixed(precission),
       volume: item[5]
     });
   });
@@ -36,7 +36,7 @@ export function getDistributionData(quoteDeltaData) {
   return result;
 }
 
-export function getSegments(deltaDisturbData = [], N = 6) {
+export function getSegments(deltaDisturbData = [], N = 6, precission) {
   const totalSum = _.sumBy(deltaDisturbData, 'count');
   const result = [];
   const segmentSize = totalSum / N;
@@ -50,8 +50,8 @@ export function getSegments(deltaDisturbData = [], N = 6) {
     if (localSumCounts >= segmentSize) {
       result.push({
         ...item,
-        average: +(parseFloat(localSumQuotes / count).toFixed(3)),
-        prob: +(parseFloat(localSumCounts / totalSum).toFixed(3))
+        average: +(parseFloat(localSumQuotes / count).toFixed(precission)),
+        prob: +(parseFloat(localSumCounts / totalSum).toFixed(precission))
       });
       localSumCounts = localSumQuotes = count = 0;
     }
