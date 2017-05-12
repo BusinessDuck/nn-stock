@@ -46,6 +46,7 @@
 
 const webpack = require('webpack');
 const path = require('path');
+const CopyWebpackPlugin = require("copy-webpack-plugin");
 
 module.exports = {
   entry: [
@@ -56,7 +57,7 @@ module.exports = {
   output: {
     path: __dirname,
     filename: 'bundle.js',
-    publicPath: '/static/'
+    publicPath: '/'
   },
   resolve: {
     extensions: ['', '.js']
@@ -64,7 +65,10 @@ module.exports = {
   devtool: 'source-map',
   plugins: [
     new webpack.HotModuleReplacementPlugin(),
-    new webpack.NoErrorsPlugin()
+    new webpack.NoErrorsPlugin(),
+    new CopyWebpackPlugin([
+      { context: './vendors/amcharts/images/', from: '**/*.*', to: 'amcharts/images' }
+    ], { copyUnmodified: true })
   ],
   module: {
     loaders: [

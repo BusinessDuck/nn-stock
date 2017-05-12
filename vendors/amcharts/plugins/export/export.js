@@ -1348,7 +1348,7 @@ if ( !AmCharts.translations[ "export" ][ "en" ] ) {
 
 					// CHECK IT'S SURROUNDINGS
 					group.has.legend = _this.gatherClassName( group.parent, _this.setup.chart.classNamePrefix + "-legend-div", 1 );
-					group.has.panel = _this.gatherClassName( group.parent, _this.setup.chart.classNamePrefix + "-stock-panel-div" );
+					group.has.panel = _this.gatherClassName( group.parent, _this.setup.chart.classNamePrefix + "-stock-Panel-div" );
 					group.has.scrollbar = _this.gatherClassName( group.parent, _this.setup.chart.classNamePrefix + "-scrollbar-chart-div" );
 
 					// GATHER ELEMENTS
@@ -1548,7 +1548,7 @@ if ( !AmCharts.translations[ "export" ][ "en" ] ) {
 						l.x2 = p.x2;
 						l.y2 = p.y2;
 
-						// // RESET INTERNAL FLAGS	
+						// // RESET INTERNAL FLAGS
 						// _this.drawing.buffer.isDrawing = true;
 						// _this.drawing.buffer.isPressed = true;
 						// _this.drawing.buffer.hasLine = true;
@@ -3401,7 +3401,7 @@ if ( !AmCharts.translations[ "export" ][ "en" ] ) {
 								_this.setup.focusedMenuItem = this;
 
 								this.parentNode.classList.add( "active" );
-								this.parentNode.parentNode.parentNode.classList.add( "active" );	
+								this.parentNode.parentNode.parentNode.classList.add( "active" );
 							}
 						} );
 
