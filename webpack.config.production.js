@@ -46,6 +46,7 @@
 
 const webpack = require('webpack');
 const path = require('path');
+const CopyWebpackPlugin = require("copy-webpack-plugin");
 
 module.exports = {
   entry: './scripts/index',
@@ -60,6 +61,9 @@ module.exports = {
   devtool: 'source-map',
   plugins: [
     new webpack.optimize.OccurenceOrderPlugin(),
+    new CopyWebpackPlugin([
+      { context: './vendors/amcharts/images/', from: '**/*.*', to: 'amcharts/images' }
+    ], { copyUnmodified: true }),
     new webpack.DefinePlugin({
       'process.env': {
         NODE_ENV: JSON.stringify('production')
@@ -77,7 +81,9 @@ module.exports = {
         test: /\.jsx?$/,
         loaders: ['babel'],
         include: path.join(__dirname, 'scripts')
-      }
+      },
+      { test: /\.css$/, loader: "style-loader!css-loader" },
+      { test: /\.(jpe?g|png|gif)$/i, loader: 'file-loader?name=[name].[ext]' },
     ]
   }
 };
