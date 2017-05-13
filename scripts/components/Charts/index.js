@@ -1,4 +1,5 @@
-import React, { PropTypes, Component } from 'react';
+import React, {PropTypes, Component} from 'react';
+import * as _ from 'lodash';
 import * as utils from '../../utils';
 import '../../../vendors/amcharts/amcharts';
 import '../../../vendors/amcharts/serial';
@@ -7,6 +8,7 @@ import '../../../vendors/amcharts/themes/dark';
 import '../../../vendors/amcharts/style.css';
 import * as AmCharts from '@amcharts/amcharts3-react';
 import './styles.css';
+import Neural from '../../utils/neural';
 
 export default class Charts extends Component {
   static propTypes = {
@@ -14,17 +16,74 @@ export default class Charts extends Component {
     loading: PropTypes.bool,
     segmentCount: PropTypes.number,
     precission: PropTypes.number,
+    neuralParams: PropTypes.array,
+    windowSize: PropTypes.number,
+    testPercentage: PropTypes.number,
   };
 
   static defaultProps = {
     marketData: [],
     loading: false,
     segmentCount: 6,
-    precission: 3
+    precission: 3,
+    neuralParams: [5, 4, 1],
+    windowSize: 5,
+    testPercentage: 50,
   };
 
   constructor(props) {
     super(props);
+    this.neural = new Neural(this.props.neuralParams);
+  }
+
+  // training start
+  trainNetwork() {
+    if (!this.quoteClassesData) {
+      return;
+    }
+
+    const quotesArray = _.map(this.quoteClassesData, 'value');
+    const traingSet = [];
+    while (100 * (quotesArray.length / this.quoteClassesData.length) > this.props.testPercentage) {
+      const input = _.take(quotesArray, this.props.windowSize);
+      const output = [quotesArray[this.props.windowSize]];
+      quotesArray.splice(0, 1);
+      traingSet.push({input, output});
+    }
+    this.neural.train(traingSet).then(result => {
+        const {chart} = this.chart2.state;
+        const neuralDataset = [];
+        const leftQuotes = _.takeRight(this.quoteClassesData, quotesArray.length + 1);
+        while (leftQuotes.length > this.props.windowSize) {
+        const input = _.map(_.take(leftQuotes, this.props.windowSize), "value");
+        const date = leftQuotes[this.props.windowSize].date;
+        const output = this.neural.activate(input).pop();
+        debugger;
+        const arrayOfDecode = _.range(0, 1, 1 / this.props.segmentCount);
+        arrayOfDecode.push(1);
+        const value = _.findIndex(arrayOfDecode, function(item) { return item  > output });
+        leftQuotes.splice(0,1);
+          neuralDataset.push({
+            value,
+            date
+          });
+        }
+        chart.dataSets.push({
+          title: "Neural Data",
+          fieldMappings: [{
+            fromField: 'value',
+            toField: 'value'
+          }],
+          dataProvider: neuralDataset,
+          categoryField: 'date',
+          compared: true
+        });
+        chart.validateData();
+        console.log(result);
+      }
+    )
+    ;
+    // training end
   }
 
   render() {
@@ -38,12 +97,13 @@ export default class Charts extends Component {
     if (!this.props.marketData.length) {
       return null;
     }
-    const { precission } = this.props;
-    const quoteDeltaData = utils.getQuoteDeltaData(this.props.marketData, precission);
-    const deltaDisturbData = utils.getDistributionData(quoteDeltaData);
-    const segments = utils.getSegments(deltaDisturbData, this.props.segmentCount, precission);
-    const quoteClassesData = utils.getClassifiedData(quoteDeltaData, segments);
-    const deltaDisturbDataClasses = utils.getDistributionData(quoteClassesData);
+    const {precission} = this.props;
+    this.quoteDeltaData = utils.getQuoteDeltaData(this.props.marketData, precission);
+    this.deltaDisturbData = utils.getDistributionData(this.quoteDeltaData);
+    this.segments = utils.getSegments(this.deltaDisturbData, this.props.segmentCount, precission);
+    this.quoteClassesData = utils.getClassifiedData(this.quoteDeltaData, this.segments);
+    this.deltaDisturbDataClasses = utils.getDistributionData(this.quoteClassesData);
+
 
     const config = {
       type: 'stock',
@@ -57,7 +117,7 @@ export default class Charts extends Component {
           fromField: 'volume',
           toField: 'volume'
         }],
-        dataProvider: quoteDeltaData,
+        dataProvider: this.quoteDeltaData,
         categoryField: 'date'
       }],
       panels: [{
@@ -101,11 +161,11 @@ export default class Charts extends Component {
       }
     };
 
-    const config2 = {
+    const config3 = {
       type: 'serial',
       theme: 'dark',
-      dataProvider: deltaDisturbData,
-      guides: segments.map((item, index) => ({
+      dataProvider: this.deltaDisturbData,
+      guides: this.segments.map((item, index) => ({
         category: item.quote,
         lineColor: '#CC0000',
         label: `N = ${index + 1}`,
@@ -143,7 +203,7 @@ export default class Charts extends Component {
     const config4 = {
       type: 'serial',
       theme: 'dark',
-      dataProvider: deltaDisturbDataClasses,
+      dataProvider: this.deltaDisturbDataClasses,
       valueAxes: [{
         gridColor: '#FFFFFF',
         gridAlpha: 0.2,
@@ -171,7 +231,7 @@ export default class Charts extends Component {
       }
     };
 
-    const config3 = {
+    const config2 = {
       type: 'stock',
       theme: 'dark',
       dataSets: [{
@@ -183,7 +243,7 @@ export default class Charts extends Component {
           fromField: 'volume',
           toField: 'volume'
         }],
-        dataProvider: quoteClassesData,
+        dataProvider: this.quoteClassesData,
         categoryField: 'date'
       }],
       panels: [{
@@ -226,17 +286,17 @@ export default class Charts extends Component {
         valueBalloonsEnabled: true
       }
     };
-
+    this.trainNetwork();
     return (
       <div className="charts">
         <div className="chart1">
           <AmCharts.React {...config} />
         </div>
         <div className="chart2">
-          <AmCharts.React {...config3} />
+          <AmCharts.React {...config2} ref={node => this.chart2 = node}/>
         </div>
         <div className="chart3">
-          <AmCharts.React {...config2} />
+          <AmCharts.React {...config3} />
         </div>
         <div className="chart4">
           <AmCharts.React {...config4} />

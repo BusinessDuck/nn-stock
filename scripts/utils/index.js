@@ -43,13 +43,18 @@ export function getSegments(deltaDisturbData = [], N = 6, precission) {
   let localSumCounts = 0;
   let localSumQuotes = 0;
   let count = 0;
+  let min = 2;
   deltaDisturbData.forEach((item) => {
     localSumCounts += +(item.count);
     localSumQuotes += +(item.quote);
+    if (item.quote < min) {
+      min = item.quote;
+    }
     count++;
-    if (localSumCounts >= segmentSize) {
+    if (localSumCounts > segmentSize) {
       result.push({
         ...item,
+        min,
         average: +(parseFloat(localSumQuotes / count).toFixed(precission)),
         prob: +(parseFloat(localSumCounts / totalSum).toFixed(precission))
       });
@@ -61,17 +66,20 @@ export function getSegments(deltaDisturbData = [], N = 6, precission) {
 
 export function getClassifiedData(deltaDisturbData, segments) {
   const segmentsArray = _.map(segments, 'quote');
+  segmentsArray.unshift(0);
+  segmentsArray.push(100);
+  let groupNum = 0;
   return deltaDisturbData.map(item => {
-    let index = 0;
-    while (+(item.value) >= +(segmentsArray[index]) && segmentsArray.length > index) {
-      index++;
-    }
-    if (item.value >= _.last(segmentsArray)) {
-      index++;
-    }
+    _.takeWhile(segmentsArray, ((segmentValue, index) => {
+      if (+(item.value) < +(segmentValue)) {
+        groupNum = index;
+        return false;
+      }
+      return true;
+    }));
     return {
       ...item,
-      value: index
+      value: groupNum
     };
   });
 }
