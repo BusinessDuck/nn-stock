@@ -19,6 +19,7 @@ export default class Charts extends Component {
     neuralParams: PropTypes.array,
     windowSize: PropTypes.number,
     testPercentage: PropTypes.number,
+    predictionAcc: PropTypes.object,
   };
 
   static defaultProps = {
@@ -28,12 +29,32 @@ export default class Charts extends Component {
     precission: 3,
     neuralParams: [5, 4, 1],
     windowSize: 5,
-    testPercentage: 50,
+    testPercentage: 10,
+    predictionAcc: {},
   };
 
   constructor(props) {
     super(props);
-    this.neural = new Neural(this.props.neuralParams);
+  }
+
+  getPredictionAcc() {
+    if (!this.neuralDataset) {
+      return null;
+    }
+    let result = 0;
+    let result2 = 0;
+
+    const dataset = this.quoteClassesData;
+    const prediction = this.neuralDataset;
+    _.takeRight(dataset, prediction.length).forEach((item, index) => {
+      if (item.value === prediction[index].value) {
+        result++;
+      }
+      if (item.value === prediction[index].value || Math.abs(item.value - prediction[index].value) === 1) {
+        result2++;
+      }
+    });
+    return `acc. : ${parseFloat((result / prediction.length) * 100).toFixed(2)}%, acc2:  ${parseFloat((result2 / prediction.length) * 100).toFixed(2)}%`;
   }
 
   // training start
@@ -52,34 +73,34 @@ export default class Charts extends Component {
     }
     this.neural.train(traingSet).then(result => {
         const {chart} = this.chart2.state;
-        const neuralDataset = [];
+        this.neuralDataset = [];
         const leftQuotes = _.takeRight(this.quoteClassesData, quotesArray.length + 1);
         while (leftQuotes.length > this.props.windowSize) {
-        const input = _.map(_.take(leftQuotes, this.props.windowSize), "value");
-        const date = leftQuotes[this.props.windowSize].date;
-        const output = this.neural.activate(input).pop();
-        debugger;
-        const arrayOfDecode = _.range(0, 1, 1 / this.props.segmentCount);
-        arrayOfDecode.push(1);
-        const value = _.findIndex(arrayOfDecode, function(item) { return item  > output });
-        leftQuotes.splice(0,1);
-          neuralDataset.push({
+          const input = _.map(_.take(leftQuotes, this.props.windowSize), 'value');
+          const date = leftQuotes[this.props.windowSize].date;
+          const output = this.neural.activate(input).pop();
+          const arrayOfDecode = _.range(0, 1, 1 / this.props.segmentCount);
+          arrayOfDecode.push(1);
+          const value = _.findIndex(arrayOfDecode, (item) => item > output);
+          leftQuotes.splice(0, 1);
+          this.neuralDataset.push({
             value,
             date
           });
         }
         chart.dataSets.push({
-          title: "Neural Data",
+          title: 'Prediction ' + this.getPredictionAcc(),
           fieldMappings: [{
             fromField: 'value',
             toField: 'value'
           }],
-          dataProvider: neuralDataset,
+          dataProvider: this.neuralDataset,
           categoryField: 'date',
           compared: true
         });
+
         chart.validateData();
-        console.log(result);
+
       }
     )
     ;
@@ -97,6 +118,7 @@ export default class Charts extends Component {
     if (!this.props.marketData.length) {
       return null;
     }
+    this.neural = new Neural(this.props.neuralParams);
     const {precission} = this.props;
     this.quoteDeltaData = utils.getQuoteDeltaData(this.props.marketData, precission);
     this.deltaDisturbData = utils.getDistributionData(this.quoteDeltaData);
@@ -235,55 +257,45 @@ export default class Charts extends Component {
       type: 'stock',
       theme: 'dark',
       dataSets: [{
-        title: 'Quotes clsoe price diff',
+        title: 'Source',
         fieldMappings: [{
           fromField: 'value',
           toField: 'value'
-        }, {
-          fromField: 'volume',
-          toField: 'volume'
         }],
         dataProvider: this.quoteClassesData,
         categoryField: 'date'
-      }],
+      }
+      ],
       panels: [{
         showCategoryAxis: false,
-        title: 'Value',
-        percentHeight: 70,
+        title: 'Quote classes',
+        recalculateToPercents: 'never',
         stockGraphs: [{
           id: 'g1',
           valueField: 'value',
-          comparable: true,
-          compareField: 'value',
-          bullet: 'round',
-          balloonText: '[[title]]:<b>[[value]]</b>',
-          compareGraphBalloonText: '[[title]]:<b>[[value]]</b>',
-          compareGraphBullet: 'round'
+          comparable: true
         }],
-        stockLegend: {
-          periodValueTextComparing: '[[percents.value.close]]%',
-          periodValueTextRegular: '[[value.close]]'
-        }
-      }, {
-        title: 'Volume',
-        percentHeight: 30,
-        stockGraphs: [{
-          valueField: 'volume',
-          type: 'column',
-          showBalloon: false,
-          fillAlphas: 1
-        },
-        ],
-        stockLegend: {
-          periodValueTextRegular: '[[value.close]]'
-        }
+
+        stockLegend: {}
       }
       ],
+
       chartScrollbarSettings: {
         graph: 'g1'
       },
+
       chartCursorSettings: {
-        valueBalloonsEnabled: true
+        valueBalloonsEnabled: true,
+        fullWidth: true,
+        cursorAlpha: 0.1
+      },
+
+      periodSelector: {
+        periods: [{
+          period: 'MM',
+          count: 4,
+          selected: true,
+        }]
       }
     };
     this.trainNetwork();

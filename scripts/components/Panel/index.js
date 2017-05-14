@@ -1,4 +1,4 @@
-import React, { PropTypes, Component } from 'react';
+import React, {PropTypes, Component} from 'react';
 import SelectItem from 'react-select-item';
 import 'react-select-item/example/select-box.css';
 import './styles.css';
@@ -10,6 +10,7 @@ export default class Panel extends Component {
     onPrecissionChange: PropTypes.func,
     onLayerChange: PropTypes.func,
     onWindowChange: PropTypes.func,
+    onPercentChange: PropTypes.func,
   };
 
   static defaultProps = {
@@ -25,11 +26,11 @@ export default class Panel extends Component {
     this.state = {
       symbol: null
     };
-    this.symbols = ['AAPL', 'IBM', 'GOOG'].map((item) => ({ name: item, value: item }));
+    this.symbols = ['AAPL', 'IBM', 'GOOG'].map((item) => ({name: item, value: item}));
   }
 
   onSymbolChangeHandler = (symbol) => {
-    this.setState({ symbol });
+    this.setState({symbol});
     this.props.symbolChangeHandler(symbol);
   };
 
@@ -44,6 +45,9 @@ export default class Panel extends Component {
   };
   onWindowChangeHandler = (e) => {
     this.props.onWindowChange(+(e.target.value));
+  };
+  onPercentChangeHandler = (e) => {
+    this.props.onPercentChange(+(e.target.value));
   };
 
   render() {
@@ -64,21 +68,24 @@ export default class Panel extends Component {
           <hr />
           <div className="input">
             <label>ТОчность округления:</label>
-            <input type="number" min="1" max="6" step="1" defaultValue="3" onChange={this.onPrecissionChangeHandler} />
+            <input type="number" min="1" max="6" step="1" defaultValue="3" onChange={this.onPrecissionChangeHandler}/>
           </div>
           <div className="input">
             <label>Количество сегментов:</label>
-            <input type="number" min="6" max="30" step="1" defaultValue="6" onChange={this.onSegmentChangeHandler} />
+            <input type="number" min="6" max="30" step="1" defaultValue="6" onChange={this.onSegmentChangeHandler}/>
           </div>
           <div className="input">
             <label>Кол-во слоёв в сети:</label>
-            <input type="number" min="1" max="200" step="1" defaultValue="10" onChange={this.onLayersChangeHandler} />
+            <input type="number" min="1" max="200" step="1" defaultValue="10" onChange={this.onLayersChangeHandler}/>
           </div>
           <div className="input">
             <label>Размер окна:</label>
-            <input type="number" min="1" max="200" step="1" defaultValue="5" onChange={this.onWindowChangeHandler} />
+            <input type="number" min="1" max="200" step="1" defaultValue="5" onChange={this.onWindowChangeHandler}/>
           </div>
-
+          <div className="input">
+            <label>Величина предсказаний в % от данных:</label>
+            <input type="number" min="1" max="100" step="1" defaultValue="10" onChange={this.onPercentChangeHandler}/>
+          </div>
         </div>
 
       </div>
